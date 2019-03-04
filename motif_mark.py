@@ -65,7 +65,7 @@ def parse_fa(fa_file):
                     if line[base].islower():
                         base, start, intron, fin = build_intron(line, base)
                         introns[start] = [intron, fin]
-    return segments, introns, exons
+    return introns, exons
 
 def id_motif(m_file, introns, exons):
     '''(file, dict, dict) -> dict
@@ -101,11 +101,10 @@ def id_motif(m_file, introns, exons):
             # motif_coords[motif_dict[key]].append(start_coordinates)
     return motif_coords
 
-def draw_motifs(s_dict, m_dict, i_dict, e_dict):
+def draw_motifs(m_dict, i_dict, e_dict):
     '''(dict,dict,dict) -> svg
     This function uses dictionaries generated from parse_fa() and id_motif. Dictionaries
-    are: s_dict (segment dictionary, key = order found, value = true start position),
-    m_dict (motif dictionary, key = motif, value = list of start positions),
+    are: m_dict (motif dictionary, key = motif, value = list of start positions),
     i_dict (intron dictionary, key = true start pos, value = sequence, end pos),
     e_dict (exon dictionary, key = true start pos, value = sequence, end pos).
     Function generates an SVG image of the gene including introns,
@@ -115,7 +114,7 @@ def draw_motifs(s_dict, m_dict, i_dict, e_dict):
 
 def main():
     '''documentation'''
-    seg_dict, intron_dict, exon_dict = parse_fa(args.filename)
+    intron_dict, exon_dict = parse_fa(args.filename)
     motif_coords = id_motif(args.motifs, intron_dict, exon_dict)
-    draw_motifs(seg_dict, motif_coords, intron_dict, exon_dict)
+    draw_motifs(motif_coords, intron_dict, exon_dict)
     return None
