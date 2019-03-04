@@ -14,11 +14,23 @@ def get_arguments():
                         required=True, type=str)
     return parser.parse_args()
 
+def build_exon(line, base):
+    '''This function is designed to build an exon dictionary entry
+    from an uppercase segment in a fasta file.'''
+    exon = ''
+    start = base
+    while line[base].isupper():
+        exon += line[base]
+        base += 1
+    fin = base - 1
+    return base, start, exon, fin
+
 def parse_fa(fa_file):
     '''(file) -> dict, dict, dict
-    This function is going to parse a fasta file where introns appear in lowercase
-    and exons appear in uppercase. It will return an intron and an exon dictionary
-    where the key represents the order of the segment.'''
+    This function is going to parse a fasta file where introns appear
+    in lowercase and exons appear in uppercase. It will return an
+    intron and an exon dictionary where the key represents the order
+    of the segment.'''
     ln, base = 0, 0 # init counters
     exon, intron = '', ''
     exons={} #key will be start coordinate, value will be seq, end coordinate
@@ -37,15 +49,9 @@ def parse_fa(fa_file):
                 base = pos[0]
             if ln%2 == 0: # sequence line
                 while base < len(line):
-                    while line[base].isupper():
-                        if exon == '':
-                            start = base
-                        exon += line[base]
-                        base += 1
-                    if exon != '':
-                        fin = base - 1
+                    if line[base].isupper():
+                        base, start, exon, fin = build_exon(line, base)
                         exons[start] = [exon, fin]
-                        exon = ''
                     while line[base].islower():
                         if intron == '':
                             start = base
