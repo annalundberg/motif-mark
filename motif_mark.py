@@ -25,6 +25,17 @@ def build_exon(line, base):
     fin = base - 1
     return base, start, exon, fin
 
+def build_intron(line, base):
+    '''This function is designed to build an intron dictionary entry
+    from an uppercase segment in a fasta file.'''
+    intron = ''
+    start = base
+    while line[base].islower():
+        intron += line[base]
+        base += 1
+    fin = base - 1
+    return base, start, intron, fin
+
 def parse_fa(fa_file):
     '''(file) -> dict, dict, dict
     This function is going to parse a fasta file where introns appear
@@ -32,7 +43,6 @@ def parse_fa(fa_file):
     intron and an exon dictionary where the key represents the order
     of the segment.'''
     ln, base = 0, 0 # init counters
-    exon, intron = '', ''
     exons={} #key will be start coordinate, value will be seq, end coordinate
     introns={} #key will be start coordinate, value will be seq, end coordinate
     with open(fa_file) as fa:
@@ -52,15 +62,9 @@ def parse_fa(fa_file):
                     if line[base].isupper():
                         base, start, exon, fin = build_exon(line, base)
                         exons[start] = [exon, fin]
-                    while line[base].islower():
-                        if intron == '':
-                            start = base
-                        intron += line[base]
-                        base += 1
-                    if intron != '':
-                        fin = base - 1
+                    if line[base].islower():
+                        base, start, intron, fin = build_intron(line, base)
                         introns[start] = [intron, fin]
-                        intron = ''
     return segments, introns, exons
 
 def id_motif(m_file, introns, exons):
