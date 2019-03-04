@@ -14,6 +14,18 @@ def get_arguments():
                         required=True, type=str)
     return parser.parse_args()
 
+def parse_header(line):
+    '''Parses fasta file header to obtain read info'''
+    header = line.split( )
+    gene = header[0]
+    loc = header[1].split(:)
+    stat = header[2] + header[3] # (reverse complement)
+    chrm = loc[0]
+    pos = loc[1].split(-)
+    base = int(pos[0])
+    end = int(pos[1])
+    return gene, chrm, base, end, stat
+
 def build_exon(line, base):
     '''This function is designed to build an exon dictionary entry
     from an uppercase segment in a fasta file.'''
@@ -45,18 +57,16 @@ def parse_fa(fa_file):
     ln, base = 0, 0 # init counters
     exons={} #key will be start coordinate, value will be seq, end coordinate
     introns={} #key will be start coordinate, value will be seq, end coordinate
+    genes = {} #key will be gene abbr, value will be chr, start coor, end coor
     with open(fa_file) as fa:
         for line in fa:
             ln+=1
             line = line.strip('\n')
             if ln%2 == 1: # header
-                header = line.split( )
-                gene = header[0]
-                loc = header[1].split(:)
-                stat = header[2] + header[3] # (reverse complement)
-                chr = loc[0]
-                pos = loc[1].split(-)
-                base = pos[0]
+                gene, chrm, base, end, stat = parse_header(line)
+                #have reverse complement info under stat if wanted
+                if gene not in genes:
+                    genes[gene] = [chr, base, end]
             if ln%2 == 0: # sequence line
                 while base < len(line):
                     if line[base].isupper():
