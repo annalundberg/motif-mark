@@ -16,36 +16,39 @@ def get_arguments():
 
 def parse_header(line):
     '''Parses fasta file header to obtain read info'''
-    header = line.split( )
+    header = line.split(' ')
+    print(header)
     gene = header[0]
     gene = gene[1:]
-    loc = header[1].split(:)
+    loc = header[1].split(':')
     stat = header[2] + header[3] # (reverse complement)
     chrm = loc[0]
-    pos = loc[1].split(-)
+    pos = loc[1].split('-')
     base = int(pos[0])
     end = int(pos[1])
     return gene, chrm, base, end, stat
 
-def build_exon(line, base):
+def build_exon(line, base, chr):
     '''This function is designed to build an exon dictionary entry
     from an uppercase segment in a fasta file.'''
     exon = ''
     start = base
-    while line[base].isupper():
-        exon += line[base]
+    while line[chr].isupper():
+        exon += line[chr]
         base += 1
+        chr += 1
     fin = base - 1
     return base, start, exon, fin
 
-def build_intron(line, base):
+def build_intron(line, base, chr):
     '''This function is designed to build an intron dictionary entry
     from an uppercase segment in a fasta file.'''
     intron = ''
     start = base
-    while line[base].islower():
-        intron += line[base]
+    while line[chr].islower(): #broken, index out of range?
+        intron += line[chr]
         base += 1
+        chr += 1
     fin = base - 1
     intron = intron.upper()
     return base, start, intron, fin
@@ -63,20 +66,24 @@ def parse_fa(fa_file):
     with open(fa_file) as fa:
         for line in fa:
             ln+=1
+            chr = 0
+            print(ln)
             line = line.strip('\n')
-            if ln%2 == 1: # header
+            if line.startswith('>'): # header
                 gene, chrm, base, end, stat = parse_header(line)
                 #have reverse complement info under stat if wanted
                 if gene not in genes:
                     genes[gene] = [chr, base, end]
-            elif ln%2 == 0: # sequence line
-                while base < len(line):
-                    if line[base].isupper():
-                        base, start, exon, fin = build_exon(line, base)
+                new = True
+            else: # sequence line
+                while chr < len(line):
+                    if line[chr].isupper():
+                        base, start, exon, fin, chr = build_exon(line, base, chr)
                         exons[start] = [exon, fin]
-                    elif line[base].islower():
-                        base, start, intron, fin = build_intron(line, base)
+                    elif line[chr].islower():
+                        base, start, intron, fin, chr = build_intron(line, base, chr)
                         introns[start] = [intron, fin]
+                new = False
     return introns, exons
 
 def id_motif(m_file, introns, exons):
@@ -126,6 +133,7 @@ def draw_motifs(m_dict, i_dict, e_dict):
 
 def main():
     '''documentation'''
+    args = get_arguments()
     intron_dict, exon_dict = parse_fa(args.filename)
     print(intron_dict, exon_dict)
     #motif_coords = id_motif(args.motifs, intron_dict, exon_dict)
