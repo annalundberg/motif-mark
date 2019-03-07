@@ -18,6 +18,7 @@ def parse_header(line):
     '''Parses fasta file header to obtain read info'''
     header = line.split( )
     gene = header[0]
+    gene = gene[1:]
     loc = header[1].split(:)
     stat = header[2] + header[3] # (reverse complement)
     chrm = loc[0]
@@ -46,6 +47,7 @@ def build_intron(line, base):
         intron += line[base]
         base += 1
     fin = base - 1
+    intron = intron.upper()
     return base, start, intron, fin
 
 def parse_fa(fa_file):
@@ -67,12 +69,12 @@ def parse_fa(fa_file):
                 #have reverse complement info under stat if wanted
                 if gene not in genes:
                     genes[gene] = [chr, base, end]
-            if ln%2 == 0: # sequence line
+            elif ln%2 == 0: # sequence line
                 while base < len(line):
                     if line[base].isupper():
                         base, start, exon, fin = build_exon(line, base)
                         exons[start] = [exon, fin]
-                    if line[base].islower():
+                    elif line[base].islower():
                         base, start, intron, fin = build_intron(line, base)
                         introns[start] = [intron, fin]
     return introns, exons
@@ -125,6 +127,11 @@ def draw_motifs(m_dict, i_dict, e_dict):
 def main():
     '''documentation'''
     intron_dict, exon_dict = parse_fa(args.filename)
-    motif_coords = id_motif(args.motifs, intron_dict, exon_dict)
-    draw_motifs(motif_coords, intron_dict, exon_dict)
+    print(intron_dict, exon_dict)
+    #motif_coords = id_motif(args.motifs, intron_dict, exon_dict)
+    #draw_motifs(motif_coords, intron_dict, exon_dict)
     return None
+
+
+if __name__ == '__main__':
+    main()
