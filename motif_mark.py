@@ -38,20 +38,20 @@ def build_exon(line, base, chr):
         base += 1
         chr += 1
     fin = base - 1
-    return base, start, exon, fin
+    return base, start, exon, fin, chr
 
 def build_intron(line, base, chr):
     '''This function is designed to build an intron dictionary entry
     from an uppercase segment in a fasta file.'''
     intron = ''
     start = base
-    while line[chr].islower(): #broken, index out of range?
+    while chr < len(line) and line[chr].islower():
         intron += line[chr]
         base += 1
         chr += 1
     fin = base - 1
     intron = intron.upper()
-    return base, start, intron, fin
+    return base, start, intron, fin, chr
 
 def parse_fa(fa_file):
     '''(file) -> dict, dict, dict
@@ -86,38 +86,61 @@ def parse_fa(fa_file):
                 new = False
     return introns, exons
 
+def make_motif_pattern(motif):
+    '''(string) -> string
+    This function reads in a motif and builds a regex expression that will
+    recognize all equivalent motifs.'''
+    motif_pattern = ''
+    trans_dict = {
+        "A": "A",
+        "C": "C",
+        "G": "G",
+        "T": "T",
+        "U": "T",
+        "M": "[AC]",
+        "R": "[AG]",
+        "W": "[AT]",
+        "S": "[CG]",
+        "Y": "[CT]",
+        "K": "[GT]",
+        "V": "[ACG]",
+        "H": "[ACT]",
+        "D": "[AGT]",
+        "B": "[CGT]",
+        "N": "[GATC]"}
+    for char in motif:
+        motif_pattern += trans_dict[char]
+    return motif_pattern
+
 def id_motif(m_file, introns, exons):
     '''(file, dict, dict) -> dict
     This function takes in a sequence as a string and uses regex to find motifs.
     Motifs are identified and returned with coordinates (start position?).'''
-    motif_dict = {} #define acceptable versions of motifs
+    motif_dict={}
     motif_coords = {} #dict for motif mapping
     # parse motif file
     with open(m_file) as motifs:
         for motif in motifs:
-            motif_dict[motif] = motif
-            for base in range(len(motif)): # Populate motif variants of 1 Y or N
-                motif_dict[motif[0:base]+'W'+motif[base+1:len(motif)]] = motif
-                motif_dict[motif[0:base]+'S'+motif[base+1:len(motif)]] = motif
-                motif_dict[motif[0:base]+'M'+motif[base+1:len(motif)]] = motif
-                motif_dict[motif[0:base]+'K'+motif[base+1:len(motif)]] = motif
-                motif_dict[motif[0:base]+'R'+motif[base+1:len(motif)]] = motif
-                motif_dict[motif[0:base]+'Y'+motif[base+1:len(motif)]] = motif
-                motif_dict[motif[0:base]+'N'+motif[base+1:len(motif)]] = motif
-    # find motifs in introns
-    for intron in introns:
-        for key in motif_dict:
-            # use re.findall to identify motifs
-            if motif_dict[key] not in motif_coords:
+            motif = motif.strip('\n')
+            motif_dict[motif] = make_motif_pattern(motif)
+    for motif in motif_dict:
+        pattern = re.compile(motif_dict[motif])
+        for intron in introns:
+            coords = []
+            for match in re.finditer(motif_dict[motif], intron):
+                coords.append(match.span()) #coordinates of each match
+            if motif_dict[motif] not in motif_coords:
                 motif_coords[motif_dict[key]]= []
-            # motif_coords[motif_dict[key]].append(start_coordinates)
-    # find motifs in exons
-    for exon in exons:
-        for key in motif_dict:
-            # use re.findall to identify motifs
-            if motif_dict[key] not in motif_coords:
+                # motif_coords[motif_dict[key]].append(start_coordinates)
+
+        for exon in exons:
+            coords = []
+            for match in re.finditer(motif_dict[motif], exon):
+                coords.append(match.span()) #coordinates of each match
+            if motif_dict[motif] not in motif_coords:
                 motif_coords[motif_dict[key]]= []
-            # motif_coords[motif_dict[key]].append(start_coordinates)
+                # motif_coords[motif_dict[key]].append(start_coordinates)
+
     return motif_coords
 
 def draw_motifs(m_dict, i_dict, e_dict):
@@ -135,7 +158,7 @@ def main():
     '''documentation'''
     args = get_arguments()
     intron_dict, exon_dict = parse_fa(args.filename)
-    print(intron_dict, exon_dict)
+    print(intron_dict, '\n', exon_dict)
     #motif_coords = id_motif(args.motifs, intron_dict, exon_dict)
     #draw_motifs(motif_coords, intron_dict, exon_dict)
     return None
