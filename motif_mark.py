@@ -152,6 +152,20 @@ def id_motif(m_file, introns, exons):
                 motif_coords[motif].append(coord)
     return motif_coords
 
+def id_exons(exon_dict, gene_info):
+    '''(dict, list) -> list
+    This function is meant to be used by draw_motifs() to id exons for drawing.
+    exon_dict (key = true start pos, value = sequence, end pos)
+    gene_info [chromosome (str), start pos (int), end pos (int)]'''
+    exons = []
+    start = gene_info[1]
+    end = gene_info[2]
+    chrom = gene_info[0]
+    for entry in exon_dict:
+        if entry > start and entry < end:
+            exons.append((entry,exon_dict[entry][1])) #append tuple of exon coordinates to list
+    return exons
+
 def draw_motifs(m_dict, i_dict, e_dict, g_dict):
     '''(dict,dict,dict,dict) -> svg
     This function uses dictionaries generated from parse_fa() and id_motif. Dictionaries
@@ -171,7 +185,7 @@ def draw_motifs(m_dict, i_dict, e_dict, g_dict):
               [0.2,0.7,0.5], #teal
               [0.57, 0.2, 0.7], #purple
               [0.7, 0.45, 0.2], #orange
-              [0.1, 0.9, 0.1], #very green
+              [0.1, 0.9, 0.1], #vv green
               [0.2, 0.7, 0.7] #light blue
              ]    # Up to 9 motif colors available, will repeat colors after 9
     with cairo.SVGSurface('motif_map.svg', w, h) as surface:
@@ -184,7 +198,15 @@ def draw_motifs(m_dict, i_dict, e_dict, g_dict):
             context.move_to(100, 500 + 1000*g) # start position
             context.line_to(1400, 500 + 1000*g) # draw line to end pos
             context.stroke()
-
+            #draw exons
+            exon_list = id_exons(e_dict, g_dict[gene])
+            for exon in exon_list:
+                start = exon[0] - g_dict[gene][1]
+                end = exon[1] - exon[0]
+                context.rectangle((100+start*scale), (450+1000*g), ((end)*scale), 100)
+                context.fill()
+            #draw motifs
+            #final things
             g += 1 # update gene count
     return None
 
@@ -195,7 +217,7 @@ def main():
     print(intron_dict, '\n', exon_dict, '\n', gene_dict)
     motif_coords = id_motif(args.motifs, intron_dict, exon_dict)
     print(motif_coords)
-    #draw_motifs(motif_coords, intron_dict, exon_dict, gene_dict)
+    draw_motifs(motif_coords, intron_dict, exon_dict, gene_dict)
     return None
 
 
