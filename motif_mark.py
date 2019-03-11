@@ -17,11 +17,13 @@ def get_arguments():
 def parse_header(line):
     '''Parses fasta file header to obtain read info'''
     header = line.split(' ')
-    print(header)
     gene = header[0]
     gene = gene[1:]
     loc = header[1].split(':')
-    stat = header[2] + header[3] # (reverse complement)
+    if len(header) == 4:
+        stat = header[2] + header[3] # (reverse complement)
+    else:
+        stat = ''
     chrm = loc[0]
     pos = loc[1].split('-')
     base = int(pos[0])
@@ -60,31 +62,40 @@ def parse_fa(fa_file):
     intron and an exon dictionary where the key represents the order
     of the segment.'''
     ln, base = 0, 0 # init counters
+    new = True
     exons={} #key will be start coordinate, value will be seq, end coordinate
     introns={} #key will be start coordinate, value will be seq, end coordinate
     genes = {} #key will be gene abbr, value will be chr, start coor, end coor
     with open(fa_file) as fa:
         for line in fa:
             ln+=1
-            chr = 0
-            print(ln)
             line = line.strip('\n')
             if line.startswith('>'): # header
+                if new == False:
+                    new = True
+                    char = 0
+                    while char < len(prev_line):
+                        if prev_line[char].isupper():
+                            base, start, exon, fin, char = build_exon(prev_line, base, char)
+                            exons[start] = [exon, fin]
+                        elif prev_line[char].islower():
+                            base, start, intron, fin, char = build_intron(prev_line, base, char)
+                            introns[start] = [intron, fin]
                 gene, chrm, base, end, stat = parse_header(line)
-                #have reverse complement info under stat if wanted
                 if gene not in genes:
-                    genes[gene] = [chr, base, end]
-                new = True
+                    genes[gene] = [chrm, base, end]
+                prev_line = ''
             else: # sequence line
-                while chr < len(line):
-                    if line[chr].isupper():
-                        base, start, exon, fin, chr = build_exon(line, base, chr)
-                        exons[start] = [exon, fin]
-                    elif line[chr].islower():
-                        base, start, intron, fin, chr = build_intron(line, base, chr)
-                        introns[start] = [intron, fin]
-                new = False
-    return introns, exons
+                prev_line += line
+    char = 0
+    while char < len(prev_line):
+        if prev_line[char].isupper():
+            base, start, exon, fin, char = build_exon(prev_line, base, char)
+            exons[start] = [exon, fin]
+        elif prev_line[char].islower():
+            base, start, intron, fin, char = build_intron(prev_line, base, char)
+            introns[start] = [intron, fin]
+    return introns, exons, genes
 
 def make_motif_pattern(motif):
     '''(string) -> string
@@ -122,25 +133,23 @@ def id_motif(m_file, introns, exons):
     with open(m_file) as motifs:
         for motif in motifs:
             motif = motif.strip('\n')
-            motif_dict[motif] = make_motif_pattern(motif)
+            motif_dict[motif] = make_motif_pattern(motif.upper())
     for motif in motif_dict:
         pattern = re.compile(motif_dict[motif])
+        if motif not in motif_coords:
+                motif_coords[motif]= []
         for intron in introns:
             coords = []
-            for match in re.finditer(motif_dict[motif], intron):
-                coords.append(match.span()) #coordinates of each match
-            if motif_dict[motif] not in motif_coords:
-                motif_coords[motif_dict[key]]= []
-                # motif_coords[motif_dict[key]].append(start_coordinates)
-
+            for match in re.finditer(motif_dict[motif], introns[intron][0]):
+                coords.append(match.span()) #coordinates of each match in tuple form
+            for coord in coords:
+                motif_coords[motif].append(coord)
         for exon in exons:
             coords = []
-            for match in re.finditer(motif_dict[motif], exon):
-                coords.append(match.span()) #coordinates of each match
-            if motif_dict[motif] not in motif_coords:
-                motif_coords[motif_dict[key]]= []
-                # motif_coords[motif_dict[key]].append(start_coordinates)
-
+            for match in re.finditer(motif_dict[motif], exons[exon][0]):
+                coords.append(match.span()) #coordinates of each match in tuple form
+            for coord in coords:
+                motif_coords[motif].append(coord)
     return motif_coords
 
 def draw_motifs(m_dict, i_dict, e_dict):
@@ -157,9 +166,10 @@ def draw_motifs(m_dict, i_dict, e_dict):
 def main():
     '''documentation'''
     args = get_arguments()
-    intron_dict, exon_dict = parse_fa(args.filename)
-    print(intron_dict, '\n', exon_dict)
-    #motif_coords = id_motif(args.motifs, intron_dict, exon_dict)
+    intron_dict, exon_dict, gene_dict = parse_fa(args.filename)
+    print(intron_dict, '\n', exon_dict, '\n', gene_dict)
+    motif_coords = id_motif(args.motifs, intron_dict, exon_dict)
+    print(motif_coords)
     #draw_motifs(motif_coords, intron_dict, exon_dict)
     return None
 
