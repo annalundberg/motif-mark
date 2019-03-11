@@ -152,15 +152,40 @@ def id_motif(m_file, introns, exons):
                 motif_coords[motif].append(coord)
     return motif_coords
 
-def draw_motifs(m_dict, i_dict, e_dict):
-    '''(dict,dict,dict) -> svg
+def draw_motifs(m_dict, i_dict, e_dict, g_dict):
+    '''(dict,dict,dict,dict) -> svg
     This function uses dictionaries generated from parse_fa() and id_motif. Dictionaries
     are: m_dict (motif dictionary, key = motif, value = list of start positions),
     i_dict (intron dictionary, key = true start pos, value = sequence, end pos),
-    e_dict (exon dictionary, key = true start pos, value = sequence, end pos).
+    e_dict (exon dictionary, key = true start pos, value = sequence, end pos),
+    g_dict (gene dictionary, key = gene name, value = chromosome, start pos, end pos).
     Function generates an SVG image of the gene including introns,
     exons and motif mapping, using pycairo to draw.'''
-    #add code
+    g = 0 # init gene counter
+    w = 1500 # set pixel width
+    h = 1000 * len(g_dict) # pixel height = frame x each gene to draw
+    colors = [[0.9,0.1,0.1], #red
+              [0.4, 0.9, 0.4], #green
+              [0.2, 0.23, 0.9], #blue
+              [0.7, 0.7, 0.2], #yellow
+              [0.2,0.7,0.5], #teal
+              [0.57, 0.2, 0.7], #purple
+              [0.7, 0.45, 0.2], #orange
+              [0.1, 0.9, 0.1], #very green
+              [0.2, 0.7, 0.7] #light blue
+             ]    # Up to 9 motif colors available, will repeat colors after 9
+    with cairo.SVGSurface('motif_map.svg', w, h) as surface:
+        context = cairo.Context(surface)
+        for gene in g_dict:
+            scale = 1300 / (g_dict[gene][2] - g_dict[gene][1]) #scale gene drawing to fit frame
+            #draw gene outline
+            context.set_source_rgb(0,0,0) #drawing a black line
+            context.set_line_width(10)
+            context.move_to(100, 500 + 1000*g) # start position
+            context.line_to(1400, 500 + 1000*g) # draw line to end pos
+            context.stroke()
+
+            g += 1 # update gene count
     return None
 
 def main():
@@ -170,7 +195,7 @@ def main():
     print(intron_dict, '\n', exon_dict, '\n', gene_dict)
     motif_coords = id_motif(args.motifs, intron_dict, exon_dict)
     print(motif_coords)
-    #draw_motifs(motif_coords, intron_dict, exon_dict)
+    #draw_motifs(motif_coords, intron_dict, exon_dict, gene_dict)
     return None
 
 
