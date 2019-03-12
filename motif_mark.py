@@ -3,6 +3,7 @@
 
 import argparse
 import re
+import numpy as np
 import cairo
 
 def get_arguments():
@@ -87,6 +88,7 @@ def parse_fa(fa_file):
                 prev_line = ''
             else: # sequence line
                 prev_line += line
+                new = False
     char = 0
     while char < len(prev_line):
         if prev_line[char].isupper():
@@ -141,13 +143,15 @@ def id_motif(m_file, introns, exons):
         for intron in introns:
             coords = []
             for match in re.finditer(motif_dict[motif], introns[intron][0]):
-                coords.append(match.span()) #coordinates of each match in tuple form
+                real_c = tuple(np.add(match.span(), (intron,intron)))
+                coords.append(real_c) # adjusted coordinates of each match as np array
             for coord in coords:
                 motif_coords[motif].append(coord)
         for exon in exons:
             coords = []
             for match in re.finditer(motif_dict[motif], exons[exon][0]):
-                coords.append(match.span()) #coordinates of each match in tuple form
+                real_c = tuple(np.add(match.span(), (intron,intron)))
+                coords.append(real_c) #coordinates of each match in tuple form
             for coord in coords:
                 motif_coords[motif].append(coord)
     return motif_coords
@@ -166,6 +170,20 @@ def id_exons(exon_dict, gene_info):
             exons.append((entry,exon_dict[entry][1])) #append tuple of exon coordinates to list
     return exons
 
+def pick_motifs(m_list, gene_info):
+    '''This function is meant to be used by draw_motifs() to id motifs
+    for drawing on a particular gene.
+    m_list (list of motif coordinates in tuple form)
+    gene_info [chromosome (str), start pos (int), end pos (int)]'''
+    motifs = []
+    start = gene_info[1]
+    end = gene_info[2]
+    chrom = gene_info[2]
+    for coordinates in m_list:
+        if coordinates[0] > start and coordinates[0] < end:
+            motifs.append(coordinates)
+    return motifs
+
 def draw_motifs(m_dict, i_dict, e_dict, g_dict):
     '''(dict,dict,dict,dict) -> svg
     This function uses dictionaries generated from parse_fa() and id_motif. Dictionaries
@@ -175,7 +193,7 @@ def draw_motifs(m_dict, i_dict, e_dict, g_dict):
     g_dict (gene dictionary, key = gene name, value = chromosome, start pos, end pos).
     Function generates an SVG image of the gene including introns,
     exons and motif mapping, using pycairo to draw.'''
-    g = 0 # init gene counter
+    g, m = 0, 0 # init gene & motif counter
     w = 1500 # set pixel width
     h = 1000 * len(g_dict) # pixel height = frame x each gene to draw
     colors = [[0.9,0.1,0.1], #red
@@ -188,6 +206,9 @@ def draw_motifs(m_dict, i_dict, e_dict, g_dict):
               [0.1, 0.9, 0.1], #vv green
               [0.2, 0.7, 0.7] #light blue
              ]    # Up to 9 motif colors available, will repeat colors after 9
+    for motif in m_dict:
+        m_dict[motif].append(colors[m%9])
+        m+=1
     with cairo.SVGSurface('motif_map.svg', w, h) as surface:
         context = cairo.Context(surface)
         for gene in g_dict:
@@ -206,6 +227,14 @@ def draw_motifs(m_dict, i_dict, e_dict, g_dict):
                 context.rectangle((100+start*scale), (450+1000*g), ((end)*scale), 100)
                 context.fill()
             #draw motifs
+            for motif in m_dict:
+                context.set_source_rgb(m_dict[motif][-1][0],m_dict[motif][-1][1],m_dict[motif][-1][2])
+                motif_list = pick_motifs(m_dict[motif][:-1], g_dict[gene])
+                for site in motif_list:
+                    start = site[0] - g_dict[gene][1]
+                    end = site[1] - site[0]
+                    context.rectangle((100+start*scale), (450+1000*g), (end*scale), 100)
+                    context.fill()
             #final things
             g += 1 # update gene count
     return None
@@ -214,10 +243,9 @@ def main():
     '''documentation'''
     args = get_arguments()
     intron_dict, exon_dict, gene_dict = parse_fa(args.filename)
-    print(intron_dict, '\n', exon_dict, '\n', gene_dict)
     motif_coords = id_motif(args.motifs, intron_dict, exon_dict)
-    print(motif_coords)
     draw_motifs(motif_coords, intron_dict, exon_dict, gene_dict)
+    print('made .svg drawing')
     return None
 
 
