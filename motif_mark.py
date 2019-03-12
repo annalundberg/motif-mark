@@ -247,14 +247,21 @@ def draw_motifs(m_dict, i_dict, e_dict, g_dict):
         context.move_to(1200, 100)
         context.set_font_size(30)
         context.show_text('Motif Legend')
+        context.move_to(1250, 150)
+        context.show_text('Exon')
+        context.rectangle(1210, (125), 25, 25)
+        context.fill()
+        context.move_to(1250, 200)
+        context.show_text('Intron')
+        context.rectangle(1210, (190), 25, 5)
+        context.fill()
         m = 0
         for motif in m_dict:
             context.set_source_rgb(0,0,0)
-            context.move_to(1250, (150 + m*50 + 1000*g))
-            context.set_font_size(30)
+            context.move_to(1250, (250 + m*50))
             context.show_text(motif)
             context.set_source_rgb(m_dict[motif][-1][0],m_dict[motif][-1][1],m_dict[motif][-1][2])
-            context.rectangle(1210, (125 + m*50 + 1000*g), 25, 25)
+            context.rectangle(1210, (225 + m*50), 25, 25)
             context.fill()
             m += 1
     return None
@@ -265,7 +272,6 @@ def main():
     intron_dict, exon_dict, gene_dict = parse_fa(args.filename)
     motif_coords = id_motif(args.motifs, intron_dict, exon_dict)
     draw_motifs(motif_coords, intron_dict, exon_dict, gene_dict)
-    print('made .svg drawing')
     return None
 
 
