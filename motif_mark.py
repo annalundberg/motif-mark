@@ -217,15 +217,15 @@ def draw_motifs(m_dict, i_dict, e_dict, g_dict):
             #draw gene outline
             context.set_source_rgb(0,0,0) #drawing a black line
             context.set_line_width(10)
-            context.move_to(100, 500 + 1000*g) # start position
-            context.line_to(1400, 500 + 1000*g) # draw line to end pos
+            context.move_to(100, 750 + 1000*g) # start position
+            context.line_to(1400, 750 + 1000*g) # draw line to end pos
             context.stroke()
             #draw exons
             exon_list = id_exons(e_dict, g_dict[gene])
             for exon in exon_list:
                 start = exon[0] - g_dict[gene][1]
                 end = exon[1] - exon[0]
-                context.rectangle((100+start*scale), (450+1000*g), ((end)*scale), 100)
+                context.rectangle((100+start*scale), (700+1000*g), ((end)*scale), 100)
                 context.fill()
             #draw motifs
             for motif in m_dict:
@@ -234,19 +234,29 @@ def draw_motifs(m_dict, i_dict, e_dict, g_dict):
                 for site in motif_list:
                     start = site[0] - g_dict[gene][1]
                     end = site[1] - site[0]
-                    context.rectangle((100+start*scale), (450+1000*g), (end*scale), 100)
+                    context.rectangle((100+start*scale), (700+1000*g), (end*scale), 100)
                     context.fill()
             #label genes
             context.set_source_rgb(0,0,0)
-            context.move_to(100, (100+1000*g))
+            context.move_to(100, (300+1000*g))
             context.set_font_size(40)
             context.show_text(geneinfo)
             #final things
             g += 1 # update gene count
         # make legend
         context.move_to(1200, 100)
+        context.set_font_size(30)
         context.show_text('Motif Legend')
-        context.set_font_size(20)
+        m = 0
+        for motif in m_dict:
+            context.set_source_rgb(0,0,0)
+            context.move_to(1250, (150 + m*50 + 1000*g))
+            context.set_font_size(30)
+            context.show_text(motif)
+            context.set_source_rgb(m_dict[motif][-1][0],m_dict[motif][-1][1],m_dict[motif][-1][2])
+            context.rectangle(1210, (125 + m*50 + 1000*g), 25, 25)
+            context.fill()
+            m += 1
     return None
 
 def main():
