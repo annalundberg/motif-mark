@@ -213,6 +213,7 @@ def draw_motifs(m_dict, i_dict, e_dict, g_dict):
         context = cairo.Context(surface)
         for gene in g_dict:
             scale = 1300 / (g_dict[gene][2] - g_dict[gene][1]) #scale gene drawing to fit frame
+            geneinfo = gene+': '+g_dict[gene][0]+': '+str(g_dict[gene][1])+'-'+str(g_dict[gene][2])
             #draw gene outline
             context.set_source_rgb(0,0,0) #drawing a black line
             context.set_line_width(10)
@@ -235,8 +236,17 @@ def draw_motifs(m_dict, i_dict, e_dict, g_dict):
                     end = site[1] - site[0]
                     context.rectangle((100+start*scale), (450+1000*g), (end*scale), 100)
                     context.fill()
+            #label genes
+            context.set_source_rgb(0,0,0)
+            context.move_to(100, (100+1000*g))
+            context.set_font_size(40)
+            context.show_text(geneinfo)
             #final things
             g += 1 # update gene count
+        # make legend
+        context.move_to(1200, 100)
+        context.show_text('Motif Legend')
+        context.set_font_size(20)
     return None
 
 def main():
